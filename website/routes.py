@@ -41,6 +41,23 @@ def split_by_crlf(s):
     return [v for v in s.splitlines() if v]
 
 
+@bp.route('/edit_user', methods=('GET', 'POST'))
+def edit_user():
+    user = current_user()
+    if not user:
+        return redirect('/')
+
+    if request.method == 'GET':
+        return render_template('edit_user.html', user=user)
+
+    form = request.form
+    user.name = form['name']
+    user.email = form['email']
+
+    db.session.commit()
+    return redirect('/')
+
+
 @bp.route('/create_client', methods=('GET', 'POST'))
 def create_client():
     user = current_user()
