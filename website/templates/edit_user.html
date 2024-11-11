@@ -8,12 +8,22 @@
 
 <form action="" method="post">
     <label>
+        <span>Photo</span>
+        <span>{{user.photo_url}}</span>
+        <img src="{{user.photo_url}}" width="265px" height="256px">
+    </label>
+    <label>
         <span>Id</span>
         <span>{{user.id}}</span>
-      </label>
+    </label>
     <label>
         <span>Username</span>
         <span>{{user.username}}</span>
+    </label>
+
+    <label>
+        <span>Photo</span>
+        <input type="text" name="photo_url" value="{{user.photo_url if user.photo_url}}">
     </label>
 
     <label>

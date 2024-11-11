@@ -12,9 +12,16 @@
 
 <br><a href="{{ url_for('.create_client') }}">Create Client</a>
 
+<br><a href="{{ url_for('.logout') }}">Logout</a>
+
 {% else %}
 <form action="" method="post">
   <input type="text" name="username" placeholder="username">
-  <button type="submit">Login / Signup</button>
+  <input type="text" name="password" placeholder="password">
+  <button type="submit">Login</button>
 </form>
+
+<b>{{error}}</b>
+
+<a href="{{ url_for('.sign_up') }}">Sign up</a>
 {% endif %}

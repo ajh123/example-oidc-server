@@ -37,7 +37,7 @@ def generate_user_info(user, scope):
     claims = scope.split(' ')
     extra = dict()
     for claim in claims:
-        if hasattr(user, claim):
+        if hasattr(user, claim) and claim != "password":
             extra[claim] = getattr(user, claim)
         if claim=='preferred_username' and hasattr(user, 'username'):
             extra[claim] = getattr(user, 'username')

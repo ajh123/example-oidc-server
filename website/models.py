@@ -13,6 +13,8 @@ class User(db.Model):
     username = db.Column(db.String(40), unique=True)
     name = db.Column(db.String(50), nullable=True, default='')
     email = db.Column(db.String(120), nullable=True, default='')
+    photo_url = db.Column(db.String(120), nullable=True, default='')
+    password = db.Column(db.LargeBinary())
 
     def __str__(self):
         return self.username

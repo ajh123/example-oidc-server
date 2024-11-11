@@ -6,9 +6,49 @@ from authlib.integrations.flask_oauth2 import current_token
 from authlib.oauth2 import OAuth2Error
 from .models import db, User, OAuth2Client
 from .oauth2 import authorization, require_oauth, generate_user_info
+import os
+import hashlib
 
 
 bp = Blueprint('bp', 'home')
+
+def hash_password(password: str) -> bytes:
+    # Convert the password to bytes
+    password_bytes = password.encode('utf-8')
+    
+    # Generate a random salt
+    salt = os.urandom(16)  # 16 bytes is recommended
+    
+    # Hash the password using scrypt
+    hashed = hashlib.scrypt(
+        password_bytes,
+        salt=salt,
+        n=16384,  # CPU cost factor (must be a power of 2, typically 16384 or higher)
+        r=8,      # Block size factor
+        p=1,      # Parallelization factor
+        dklen=64  # Length of derived key in bytes
+    )
+    
+    # Return the salt + hash (store both to verify later)
+    return salt + hashed
+
+def verify_password(stored_password: bytes, password_attempt: str) -> bool:
+    # Split the salt and the hash
+    salt = stored_password[:16]
+    stored_hash = stored_password[16:]
+    
+    # Hash the password attempt with the same salt
+    attempt_hash = hashlib.scrypt(
+        password_attempt.encode('utf-8'),
+        salt=salt,
+        n=16384,
+        r=8,
+        p=1,
+        dklen=64
+    )
+    
+    # Check if the hashes match
+    return attempt_hash == stored_hash
 
 
 def current_user():
@@ -18,15 +58,37 @@ def current_user():
     return None
 
 
+@bp.route('/sign_up', methods=('GET', 'POST'))
+def sign_up():
+    user = current_user()
+    if user:
+        return redirect('/')
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if len(password) <= 0:
+            return render_template('sign_up.html', error="Password must be greater then 0")
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            user = User(username=username, password=hash_password(password))
+            db.session.add(user)
+            db.session.commit()
+        else:
+            return render_template('sign_up.html', error="User exists")
+        session['id'] = user.id
+        return redirect('/')
+    return render_template('sign_up.html', user=user)
+
 @bp.route('/', methods=('GET', 'POST'))
 def home():
     if request.method == 'POST':
         username = request.form.get('username')
+        password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         if not user:
-            user = User(username=username)
-            db.session.add(user)
-            db.session.commit()
+            return render_template('home.html', error="Invalid username or password")
+        if not verify_password(user.password, password):
+            return render_template('home.html', error="Invalid username or password")
         session['id'] = user.id
         return redirect('/')
     user = current_user()
@@ -40,6 +102,10 @@ def home():
 def split_by_crlf(s):
     return [v for v in s.splitlines() if v]
 
+@bp.route('/logout', methods=('GET', 'POST'))
+def logout():
+    session.clear()
+    return redirect('/')
 
 @bp.route('/edit_user', methods=('GET', 'POST'))
 def edit_user():
@@ -53,6 +119,7 @@ def edit_user():
     form = request.form
     user.name = form['name']
     user.email = form['email']
+    user.photo_url = form['photo_url']
 
     db.session.commit()
     return redirect('/')
